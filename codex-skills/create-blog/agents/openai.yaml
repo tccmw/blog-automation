@@ -1,0 +1,3 @@
+display_name: Create Blog
+short_description: Pull a ready Notion note and draft a publishable blog post.
+default_prompt: create-blog
