@@ -1,0 +1,3 @@
+display_name: Create LinkedIn
+short_description: Pull a ready Notion note, draft a LinkedIn package, and publish it to Notion.
+default_prompt: create-linkedin
