@@ -6,12 +6,13 @@
   "scripts": {
     "create-blog": "node scripts/create-blog.js",
     "create-blog-source": "node scripts/create-blog-source.js",
+    "create-notion": "node scripts/create-notion.js",
     "create-linkedin": "node scripts/create-linkedin.js",
     "create-linkedin-source": "node scripts/create-linkedin.js",
     "list-notion-tree": "node scripts/list-notion-tree.js",
     "publish-blog-draft": "node scripts/publish-blog-draft.js",
     "publish-linkedin": "node scripts/publish-linkedin.js",
-    "check": "node --check scripts/create-blog.js && node --check scripts/create-blog-source.js && node --check scripts/create-linkedin.js && node --check scripts/list-notion-tree.js && node --check scripts/publish-blog-draft.js && node --check scripts/publish-linkedin.js && node --check scripts/lib/load-env.js && node --check scripts/lib/notion-api.js && node --check scripts/lib/notion-render.js && node --check scripts/lib/notion-workflows.js && node --check scripts/lib/openai-api.js && node --check scripts/lib/parse-source-input.js && node --check scripts/lib/publish-blog-draft.js",
+    "check": "node --check scripts/create-blog.js && node --check scripts/create-blog-source.js && node --check scripts/create-notion.js && node --check scripts/create-linkedin.js && node --check scripts/list-notion-tree.js && node --check scripts/publish-blog-draft.js && node --check scripts/publish-linkedin.js && node --check scripts/lib/load-env.js && node --check scripts/lib/notion-api.js && node --check scripts/lib/notion-render.js && node --check scripts/lib/notion-workflows.js && node --check scripts/lib/openai-api.js && node --check scripts/lib/parse-source-input.js && node --check scripts/lib/publish-blog-draft.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

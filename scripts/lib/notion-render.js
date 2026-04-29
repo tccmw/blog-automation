@@ -214,7 +214,7 @@ function renderRichTextItem(item) {
 
   const annotations = item.annotations || {};
   const isEquation = item.type === "equation";
-  const rawText = isEquation ? `$${item.equation.expression || ""}$` : item.plain_text || "";
+  const rawText = isEquation ? `$${item.equation.expression || ""}$` : item.plain_text || item.text?.content || "";
   let text;
 
   if (annotations.code) {
@@ -240,8 +240,10 @@ function renderRichTextItem(item) {
     }
   }
 
-  if (item.href) {
-    text = `[${text}](${item.href})`;
+  const href = item.href || item.text?.link?.url || "";
+
+  if (href) {
+    text = `[${text}](${href})`;
   }
 
   return text;
@@ -260,7 +262,7 @@ function markdownToNotionBlocks(markdown) {
       continue;
     }
 
-    const codeStart = line.match(/^```([A-Za-z0-9_+-]+)?\s*$/);
+    const codeStart = line.match(/^```([^`]*)\s*$/);
     if (codeStart) {
       const language = normalizeCodeLanguage(codeStart[1]);
       const codeLines = [];
@@ -373,42 +375,325 @@ function shouldStayInParagraph(line) {
 }
 
 function makeTextBlock(type, text) {
-  const plain = stripInlineMarkdown(text);
+  const richText = markdownToRichText(text);
 
   switch (type) {
     case "heading_1":
-      return { object: "block", type, heading_1: { rich_text: richTextFromPlainText(plain) } };
+      return { object: "block", type, heading_1: { rich_text: richText } };
     case "heading_2":
-      return { object: "block", type, heading_2: { rich_text: richTextFromPlainText(plain) } };
+      return { object: "block", type, heading_2: { rich_text: richText } };
     case "heading_3":
-      return { object: "block", type, heading_3: { rich_text: richTextFromPlainText(plain) } };
+      return { object: "block", type, heading_3: { rich_text: richText } };
     case "quote":
-      return { object: "block", type, quote: { rich_text: richTextFromPlainText(plain) } };
+      return { object: "block", type, quote: { rich_text: richText } };
     case "bulleted_list_item":
-      return { object: "block", type, bulleted_list_item: { rich_text: richTextFromPlainText(plain) } };
+      return { object: "block", type, bulleted_list_item: { rich_text: richText } };
     case "numbered_list_item":
-      return { object: "block", type, numbered_list_item: { rich_text: richTextFromPlainText(plain) } };
+      return { object: "block", type, numbered_list_item: { rich_text: richText } };
     default:
-      return { object: "block", type: "paragraph", paragraph: { rich_text: richTextFromPlainText(plain) } };
+      return { object: "block", type: "paragraph", paragraph: { rich_text: richText } };
   }
 }
 
 function normalizeCodeLanguage(language) {
   const normalized = String(language || "").trim().toLowerCase();
-  return normalized || "plain text";
+
+  if (!normalized) {
+    return "plain text";
+  }
+
+  const aliases = {
+    js: "javascript",
+    jsx: "javascript",
+    ts: "typescript",
+    tsx: "typescript",
+    sh: "shell",
+    shellscript: "shell",
+    text: "plain text",
+    plaintext: "plain text",
+    plain: "plain text",
+    md: "markdown",
+    yml: "yaml",
+  };
+
+  return aliases[normalized] || normalized;
 }
 
-function stripInlineMarkdown(value) {
-  return String(value || "")
-    .replace(/\[(.*?)\]\((.*?)\)/g, "$1 ($2)")
-    .replace(/`([^`]+)`/g, "$1")
-    .replace(/\*\*(.*?)\*\*/g, "$1")
-    .replace(/\*(.*?)\*/g, "$1")
-    .replace(/__(.*?)__/g, "$1")
-    .replace(/_(.*?)_/g, "$1")
-    .replace(/~~(.*?)~~/g, "$1")
-    .replace(/<u>(.*?)<\/u>/g, "$1")
-    .trim();
+function markdownToRichText(value, inheritedAnnotations = defaultAnnotations(), inheritedHref = "") {
+  return inlineSegmentsToRichText(parseInlineMarkdown(value, inheritedAnnotations, inheritedHref));
+}
+
+function parseInlineMarkdown(value, inheritedAnnotations = defaultAnnotations(), inheritedHref = "") {
+  const text = String(value || "");
+  const annotations = normalizeAnnotations(inheritedAnnotations);
+  const segments = [];
+  let cursor = 0;
+  let buffer = "";
+
+  while (cursor < text.length) {
+    const linkToken = matchLinkToken(text, cursor);
+    if (linkToken) {
+      flushBuffer(segments, buffer, annotations, inheritedHref);
+      buffer = "";
+      segments.push(...parseInlineMarkdown(linkToken.label, annotations, linkToken.url));
+      cursor = linkToken.end;
+      continue;
+    }
+
+    const codeToken = matchCodeToken(text, cursor);
+    if (codeToken) {
+      flushBuffer(segments, buffer, annotations, inheritedHref);
+      buffer = "";
+      segments.push({
+        text: codeToken.content,
+        href: inheritedHref,
+        annotations: normalizeAnnotations({
+          ...annotations,
+          code: true,
+        }),
+      });
+      cursor = codeToken.end;
+      continue;
+    }
+
+    const boldToken = matchDelimitedToken(text, cursor, "**") || matchDelimitedToken(text, cursor, "__");
+    if (boldToken) {
+      flushBuffer(segments, buffer, annotations, inheritedHref);
+      buffer = "";
+      segments.push(
+        ...parseInlineMarkdown(boldToken.content, {
+          ...annotations,
+          bold: true,
+        }, inheritedHref),
+      );
+      cursor = boldToken.end;
+      continue;
+    }
+
+    const strikeToken = matchDelimitedToken(text, cursor, "~~");
+    if (strikeToken) {
+      flushBuffer(segments, buffer, annotations, inheritedHref);
+      buffer = "";
+      segments.push(
+        ...parseInlineMarkdown(strikeToken.content, {
+          ...annotations,
+          strikethrough: true,
+        }, inheritedHref),
+      );
+      cursor = strikeToken.end;
+      continue;
+    }
+
+    const italicToken = matchItalicToken(text, cursor);
+    if (italicToken) {
+      flushBuffer(segments, buffer, annotations, inheritedHref);
+      buffer = "";
+      segments.push(
+        ...parseInlineMarkdown(italicToken.content, {
+          ...annotations,
+          italic: true,
+        }, inheritedHref),
+      );
+      cursor = italicToken.end;
+      continue;
+    }
+
+    buffer += text[cursor];
+    cursor += 1;
+  }
+
+  flushBuffer(segments, buffer, annotations, inheritedHref);
+  return mergeInlineSegments(segments);
+}
+
+function flushBuffer(segments, text, annotations, href) {
+  if (!text) {
+    return;
+  }
+
+  segments.push({
+    text,
+    href,
+    annotations: normalizeAnnotations(annotations),
+  });
+}
+
+function defaultAnnotations() {
+  return {
+    bold: false,
+    italic: false,
+    strikethrough: false,
+    underline: false,
+    code: false,
+    color: "default",
+  };
+}
+
+function normalizeAnnotations(annotations = {}) {
+  return {
+    bold: Boolean(annotations.bold),
+    italic: Boolean(annotations.italic),
+    strikethrough: Boolean(annotations.strikethrough),
+    underline: Boolean(annotations.underline),
+    code: Boolean(annotations.code),
+    color: "default",
+  };
+}
+
+function matchDelimitedToken(text, start, delimiter) {
+  if (!text.startsWith(delimiter, start)) {
+    return null;
+  }
+
+  const endIndex = text.indexOf(delimiter, start + delimiter.length);
+  if (endIndex === -1) {
+    return null;
+  }
+
+  return {
+    content: text.slice(start + delimiter.length, endIndex),
+    end: endIndex + delimiter.length,
+  };
+}
+
+function matchItalicToken(text, start) {
+  const marker = text[start];
+
+  if ((marker !== "*" && marker !== "_") || text.startsWith(marker.repeat(2), start)) {
+    return null;
+  }
+
+  const endIndex = text.indexOf(marker, start + 1);
+  if (endIndex === -1) {
+    return null;
+  }
+
+  return {
+    content: text.slice(start + 1, endIndex),
+    end: endIndex + 1,
+  };
+}
+
+function matchCodeToken(text, start) {
+  const fenceMatch = text.slice(start).match(/^`+/);
+  if (!fenceMatch) {
+    return null;
+  }
+
+  const fence = fenceMatch[0];
+  const endIndex = text.indexOf(fence, start + fence.length);
+  if (endIndex === -1) {
+    return null;
+  }
+
+  return {
+    content: text.slice(start + fence.length, endIndex),
+    end: endIndex + fence.length,
+  };
+}
+
+function matchLinkToken(text, start) {
+  if (text[start] !== "[") {
+    return null;
+  }
+
+  const labelEnd = findBalancedTerminator(text, start, "[", "]");
+  if (labelEnd === -1 || text[labelEnd + 1] !== "(") {
+    return null;
+  }
+
+  const urlEnd = findBalancedTerminator(text, labelEnd + 1, "(", ")");
+  if (urlEnd === -1) {
+    return null;
+  }
+
+  return {
+    label: text.slice(start + 1, labelEnd),
+    url: text.slice(labelEnd + 2, urlEnd).trim(),
+    end: urlEnd + 1,
+  };
+}
+
+function findBalancedTerminator(text, start, openChar, closeChar) {
+  let depth = 0;
+
+  for (let index = start; index < text.length; index += 1) {
+    if (text[index] === openChar) {
+      depth += 1;
+    } else if (text[index] === closeChar) {
+      depth -= 1;
+      if (depth === 0) {
+        return index;
+      }
+    }
+  }
+
+  return -1;
+}
+
+function mergeInlineSegments(segments) {
+  const merged = [];
+
+  for (const segment of segments) {
+    if (!segment || !segment.text) {
+      continue;
+    }
+
+    const previous = merged[merged.length - 1];
+    if (
+      previous &&
+      previous.href === segment.href &&
+      annotationsEqual(previous.annotations, segment.annotations)
+    ) {
+      previous.text += segment.text;
+      continue;
+    }
+
+    merged.push({
+      text: segment.text,
+      href: segment.href,
+      annotations: normalizeAnnotations(segment.annotations),
+    });
+  }
+
+  return merged;
+}
+
+function annotationsEqual(left = {}, right = {}) {
+  return (
+    Boolean(left.bold) === Boolean(right.bold) &&
+    Boolean(left.italic) === Boolean(right.italic) &&
+    Boolean(left.strikethrough) === Boolean(right.strikethrough) &&
+    Boolean(left.underline) === Boolean(right.underline) &&
+    Boolean(left.code) === Boolean(right.code) &&
+    String(left.color || "default") === String(right.color || "default")
+  );
+}
+
+function inlineSegmentsToRichText(segments) {
+  const richText = [];
+
+  for (const segment of segments) {
+    const text = String(segment.text || "");
+
+    if (!text) {
+      continue;
+    }
+
+    for (let index = 0; index < text.length; index += 2000) {
+      const content = text.slice(index, index + 2000);
+      richText.push({
+        type: "text",
+        text: {
+          content,
+          ...(segment.href ? { link: { url: segment.href } } : {}),
+        },
+        annotations: normalizeAnnotations(segment.annotations),
+      });
+    }
+  }
+
+  return richText;
 }
 
 function plainText(richText) {
