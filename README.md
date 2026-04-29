@@ -6,6 +6,7 @@ Notion에 있는 소스 노트를 가져와 블로그 초안과 LinkedIn 초안 
 
 - Notion URL, 페이지 ID, 페이지 경로, 데이터베이스/데이터 소스 필터로 원문 선택
 - 블로그용 소스 정리 및 Markdown 초안 생성
+- 원문 페이지를 Notion 형식으로 다시 정리해 같은 페이지 하단에 추가
 - LinkedIn용 소스 정리 및 Notion 발행
 - 결과물을 `output/` 폴더에 파일로 저장
 
@@ -17,6 +18,8 @@ Notion에 있는 소스 노트를 가져와 블로그 초안과 LinkedIn 초안 
 - `openai` 모드: `OPENAI_API_KEY`가 있을 때 OpenAI API로 블로그 초안을 생성합니다.
 
 LinkedIn 워크플로우는 먼저 소스를 가져온 뒤, 그 내용을 바탕으로 `output/create-linkedin.md`를 작성하고 Notion에 발행하는 흐름입니다.
+
+`create-notion` 워크플로우는 지정한 Notion 페이지의 원문을 읽고, 원문의 의미와 형식을 최대한 유지한 Notion용 정리본을 만든 뒤 같은 페이지 하단에 구분선과 함께 덧붙입니다.
 
 ## 요구 사항
 
@@ -74,7 +77,7 @@ npm run create-linkedin
 
 - `NOTION_API_KEY`: 필수. Notion API 토큰
 - `BLOG_DRAFT_MODE`: 블로그 초안 생성 방식. 기본값은 `codex`
-- `OPENAI_API_KEY`: `BLOG_DRAFT_MODE=openai`일 때 필요
+- `OPENAI_API_KEY`: `BLOG_DRAFT_MODE=openai`일 때 필요하며 `create-notion` 실행에도 필요
 - `OPENAI_MODEL`: OpenAI 사용 모델. 기본값은 `gpt-5`
 
 ### 소스 선택 관련
@@ -254,6 +257,45 @@ npm run publish-linkedin
 
 발행 결과는 `output/create-linkedin-published.json`에 저장됩니다.
 
+## Notion 정리본 추가하기
+
+### 1. 원문 페이지 아래에 정리본 붙이기
+
+아래 명령을 실행하면 지정한 페이지를 읽고, Notion 친화적인 형식으로 다시 정리한 내용을 같은 페이지 하단에 추가합니다.
+
+```powershell
+npm run create-notion -- "https://www.notion.so/your-page"
+```
+
+이 명령은 다음 순서로 동작합니다.
+
+1. 대상 Notion 페이지 원문을 가져옵니다.
+2. `output/create-notion-source.md`, `output/create-notion-source.json`을 저장합니다.
+3. OpenAI API로 원문의 의미를 유지한 Notion용 정리본을 생성합니다.
+4. `output/create-notion.md`를 저장합니다.
+5. 원래 페이지 맨 아래에 divider와 함께 정리본을 append 합니다.
+6. `output/create-notion-result.json`에 append 결과를 저장합니다.
+
+정리본 작성 규칙은 다음과 같습니다.
+
+- Markdown과 Notion에서 자연스럽게 변환되는 구조를 사용합니다.
+- 아이콘이나 이모지는 사용하지 않습니다.
+- 원래 있는 글의 내용을 변질시키지 않습니다.
+- 원래 글의 형식과 순서를 최대한 따라갑니다.
+
+추가 생성 파일:
+
+- `output/create-notion-source.md`
+- `output/create-notion-source.json`
+- `output/create-notion.md`
+- `output/create-notion-result.json`
+
+실행 전 주의사항:
+
+- `create-notion`은 대상 페이지 자체를 직접 수정합니다.
+- `.env`에 `OPENAI_API_KEY`가 설정되어 있어야 합니다.
+- 링크, 굵은 글씨, 인라인 코드, 코드 블록 같은 마크다운 요소는 Notion 블록/리치 텍스트로 변환되어 append 됩니다.
+
 ## 페이지 경로 탐색
 
 페이지 경로 모드를 쓰려면 먼저 트리를 확인하는 편이 좋습니다.
@@ -276,6 +318,7 @@ npm run list-notion-tree -- "프로젝트/초안" 2
 ```powershell
 npm run create-blog -- "https://www.notion.so/your-page"
 npm run create-blog-source -- "https://www.notion.so/your-page"
+npm run create-notion -- "https://www.notion.so/your-page"
 npm run publish-blog-draft
 npm run create-linkedin -- "https://www.notion.so/your-page"
 npm run publish-linkedin
@@ -295,6 +338,13 @@ npm run check
 - `output/create-blog-codex.log`: Codex 실행 로그
 - `output/create-blog-published.json`: 발행 결과
 
+### Notion 정리본 추가
+
+- `output/create-notion-source.md`: 대상 페이지 원문 Markdown
+- `output/create-notion-source.json`: 소스 메타데이터
+- `output/create-notion.md`: 페이지 하단에 붙일 정리본 Markdown
+- `output/create-notion-result.json`: 원문 페이지 append 결과
+
 ### LinkedIn
 
 - `output/create-linkedin-source.md`: LinkedIn용 원문 Markdown
@@ -305,6 +355,7 @@ npm run check
 ## 트러블슈팅
 
 - `Missing NOTION_API_KEY`: `.env`에 Notion 토큰이 없습니다.
+- `Missing OPENAI_API_KEY`: `create-notion` 또는 OpenAI 블로그 초안 생성에 필요한 OpenAI 키가 없습니다.
 - `Path mode requires NOTION_ROOT_PAGE_ID`: 경로 입력을 썼지만 루트 페이지 ID가 없습니다.
 - `No Notion page matched the configured filters`: 데이터베이스 필터값이나 속성명이 실제 Notion 스키마와 다릅니다.
 - `Failed to start Codex CLI`: 로컬 `codex` CLI가 설치되지 않았거나 로그인되지 않았습니다. `codex login status`로 상태를 확인하세요.
@@ -313,9 +364,11 @@ npm run check
 
 - `scripts/create-blog.js`: 블로그 전체 워크플로우 진입점
 - `scripts/create-blog-source.js`: 블로그 소스만 가져오기
+- `scripts/create-notion.js`: 원문 페이지 아래에 Notion용 정리본 추가
 - `scripts/create-linkedin.js`: LinkedIn 소스 가져오기
 - `scripts/list-notion-tree.js`: Notion 페이지 경로 탐색
 - `scripts/publish-blog-draft.js`: 블로그 초안 발행
 - `scripts/publish-linkedin.js`: LinkedIn 초안 발행
+- `templates/notion-append-draft.md`: Notion 정리본 작성 템플릿
 - `templates/tistory-blog-draft.md`: 블로그 작성 템플릿
 - `output/`: 생성 결과 저장 위치
