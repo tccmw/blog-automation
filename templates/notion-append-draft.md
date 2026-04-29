@@ -1,6 +1,6 @@
-# Notion Append Draft Template
+# Notion Child Page Draft Template
 
-Use this template when turning an existing Notion page into a cleaner Notion-ready rewrite that will be appended below the original page.
+Use this template when turning an existing Notion page into a cleaner Notion-ready rewrite that will be saved as a child page under the original page.
 
 ## Goal
 
@@ -17,9 +17,9 @@ Use this template when turning an existing Notion page into a cleaner Notion-rea
 - Keep the source's format, section order, and heading depth wherever practical.
 - Use Markdown bold sparingly for important terms or contrasts when it improves readability.
 - Preserve links and code blocks when they appear in the source.
-- Do not add a top-level `#` page title.
-- Start the appended content with `## 정리본` for Korean pages, or `## Notes` for non-Korean pages.
-- Return only the final Markdown body that should be appended below the original page.
+- Do not add a top-level `#` page title. The Notion child page title will be set separately.
+- Start the content with `## 정리본` for Korean pages, or `## Notes` for non-Korean pages.
+- Return only the final Markdown body that should go inside the organized child page.
 
 ## Style
 

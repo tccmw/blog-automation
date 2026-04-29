@@ -249,7 +249,7 @@ function renderRichTextItem(item) {
   return text;
 }
 
-function markdownToNotionBlocks(markdown) {
+function markdownToNotionBlocks(markdown, options = {}) {
   const lines = String(markdown || "").replace(/\r/g, "").split("\n");
   const blocks = [];
   let index = 0;
@@ -295,19 +295,19 @@ function markdownToNotionBlocks(markdown) {
     }
 
     if (/^###\s+/.test(line)) {
-      blocks.push(makeTextBlock("heading_3", line.replace(/^###\s+/, "")));
+      blocks.push(makeTextBlock("heading_3", line.replace(/^###\s+/, ""), options));
       index += 1;
       continue;
     }
 
     if (/^##\s+/.test(line)) {
-      blocks.push(makeTextBlock("heading_2", line.replace(/^##\s+/, "")));
+      blocks.push(makeTextBlock("heading_2", line.replace(/^##\s+/, ""), options));
       index += 1;
       continue;
     }
 
     if (/^#\s+/.test(line)) {
-      blocks.push(makeTextBlock("heading_1", line.replace(/^#\s+/, "")));
+      blocks.push(makeTextBlock("heading_1", line.replace(/^#\s+/, ""), options));
       index += 1;
       continue;
     }
@@ -320,13 +320,13 @@ function markdownToNotionBlocks(markdown) {
         index += 1;
       }
 
-      blocks.push(makeTextBlock("quote", quoted.join("\n")));
+      blocks.push(makeTextBlock("quote", quoted.join("\n"), options));
       continue;
     }
 
     if (/^-\s+/.test(line)) {
       while (index < lines.length && /^-\s+/.test(lines[index])) {
-        blocks.push(makeTextBlock("bulleted_list_item", lines[index].replace(/^-\s+/, "")));
+        blocks.push(makeTextBlock("bulleted_list_item", lines[index].replace(/^-\s+/, ""), options));
         index += 1;
       }
       continue;
@@ -334,7 +334,7 @@ function markdownToNotionBlocks(markdown) {
 
     if (/^\d+\.\s+/.test(line)) {
       while (index < lines.length && /^\d+\.\s+/.test(lines[index])) {
-        blocks.push(makeTextBlock("numbered_list_item", lines[index].replace(/^\d+\.\s+/, "")));
+        blocks.push(makeTextBlock("numbered_list_item", lines[index].replace(/^\d+\.\s+/, ""), options));
         index += 1;
       }
       continue;
@@ -347,7 +347,7 @@ function markdownToNotionBlocks(markdown) {
       index += 1;
     }
 
-    blocks.push(makeTextBlock("paragraph", paragraph.join("\n")));
+    blocks.push(makeTextBlock("paragraph", paragraph.join("\n"), options));
   }
 
   return blocks;
@@ -374,8 +374,11 @@ function shouldStayInParagraph(line) {
   return !/^(#{1,3}\s+|>\s?|-\s+|\d+\.\s+|```|---\s*$)/.test(line);
 }
 
-function makeTextBlock(type, text) {
-  const richText = markdownToRichText(text);
+function makeTextBlock(type, text, options = {}) {
+  const richText =
+    options.parseInlineMarkdown === false
+      ? richTextFromPlainText(stripInlineMarkdown(text))
+      : markdownToRichText(text);
 
   switch (type) {
     case "heading_1":
@@ -417,6 +420,19 @@ function normalizeCodeLanguage(language) {
   };
 
   return aliases[normalized] || normalized;
+}
+
+function stripInlineMarkdown(value) {
+  return String(value || "")
+    .replace(/\[(.*?)\]\((.*?)\)/g, "$1 ($2)")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/__(.*?)__/g, "$1")
+    .replace(/_(.*?)_/g, "$1")
+    .replace(/~~(.*?)~~/g, "$1")
+    .replace(/<u>(.*?)<\/u>/g, "$1")
+    .trim();
 }
 
 function markdownToRichText(value, inheritedAnnotations = defaultAnnotations(), inheritedHref = "") {

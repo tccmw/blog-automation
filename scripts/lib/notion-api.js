@@ -151,6 +151,14 @@ async function appendBlockChildren(config, blockId, children) {
   });
 }
 
+async function archiveBlock(config, blockId) {
+  return notionRequest(config, {
+    method: "PATCH",
+    resourcePath: `/v1/blocks/${blockId}`,
+    body: { archived: true },
+  });
+}
+
 function buildPropertyFilter(properties, logicalName, expectedValue) {
   if (expectedValue === undefined || expectedValue === null || String(expectedValue).trim() === "") {
     return null;
@@ -332,10 +340,12 @@ function tryParseJson(value) {
 
 module.exports = {
   appendBlockChildren,
+  archiveBlock,
   buildPropertyFilter,
   buildPropertyValue,
   createPage,
   fetchAllAccessiblePages,
+  fetchBlockChildren,
   fetchBlockTree,
   fetchDatabaseSchema,
   fetchPage,

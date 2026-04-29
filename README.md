@@ -6,7 +6,7 @@ Notion에 있는 소스 노트를 가져와 블로그 초안과 LinkedIn 초안 
 
 - Notion URL, 페이지 ID, 페이지 경로, 데이터베이스/데이터 소스 필터로 원문 선택
 - 블로그용 소스 정리 및 Markdown 초안 생성
-- 원문 페이지를 Notion 형식으로 다시 정리해 같은 페이지 하단에 추가
+- 원문 페이지를 `원본`/`정리본` child page 구조로 재구성
 - LinkedIn용 소스 정리 및 Notion 발행
 - 결과물을 `output/` 폴더에 파일로 저장
 
@@ -19,7 +19,7 @@ Notion에 있는 소스 노트를 가져와 블로그 초안과 LinkedIn 초안 
 
 LinkedIn 워크플로우는 먼저 소스를 가져온 뒤, 그 내용을 바탕으로 `output/create-linkedin.md`를 작성하고 Notion에 발행하는 흐름입니다.
 
-`create-notion` 워크플로우는 지정한 Notion 페이지의 원문을 읽고, 원문의 의미와 형식을 최대한 유지한 Notion용 정리본을 만든 뒤 같은 페이지 하단에 구분선과 함께 덧붙입니다.
+`create-notion` 워크플로우는 지정한 Notion 페이지를 부모 컨테이너로 두고, 그 안에 `원본` child page와 `정리본` child page를 생성하는 흐름입니다. `원본`은 기존 내용을 그대로 담고, `정리본`은 원문의 의미와 형식을 최대한 유지한 정리본을 담습니다.
 
 ## 요구 사항
 
@@ -259,9 +259,9 @@ npm run publish-linkedin
 
 ## Notion 정리본 추가하기
 
-### 1. 원문 페이지 아래에 정리본 붙이기
+### 1. 원문 페이지를 child page 구조로 바꾸기
 
-아래 명령을 실행하면 지정한 페이지를 읽고, Notion 친화적인 형식으로 다시 정리한 내용을 같은 페이지 하단에 추가합니다.
+아래 명령을 실행하면 지정한 페이지를 읽고, 부모 페이지 아래에 `원본`과 `정리본` child page를 차례로 만듭니다.
 
 ```powershell
 npm run create-notion -- "https://www.notion.so/your-page"
@@ -273,8 +273,10 @@ npm run create-notion -- "https://www.notion.so/your-page"
 2. `output/create-notion-source.md`, `output/create-notion-source.json`을 저장합니다.
 3. OpenAI API로 원문의 의미를 유지한 Notion용 정리본을 생성합니다.
 4. `output/create-notion.md`를 저장합니다.
-5. 원래 페이지 맨 아래에 divider와 함께 정리본을 append 합니다.
-6. `output/create-notion-result.json`에 append 결과를 저장합니다.
+5. 부모 페이지 아래에 `원본 - {제목}` child page를 생성하고, 기존 내용을 그 안에 복제합니다.
+6. 그 아래에 `정리본 - {제목}` child page를 생성하고, 정리한 내용을 넣습니다.
+7. 부모 페이지의 기존 최상위 블록은 정리해서 부모 페이지를 컨테이너로 만듭니다.
+8. `output/create-notion-result.json`에 child page 생성 결과를 저장합니다.
 
 정리본 작성 규칙은 다음과 같습니다.
 
@@ -292,9 +294,9 @@ npm run create-notion -- "https://www.notion.so/your-page"
 
 실행 전 주의사항:
 
-- `create-notion`은 대상 페이지 자체를 직접 수정합니다.
+- `create-notion`은 대상 페이지를 컨테이너 페이지로 바꾸므로, 기존 최상위 블록 구조가 child page 구조로 재편됩니다.
 - `.env`에 `OPENAI_API_KEY`가 설정되어 있어야 합니다.
-- 링크, 굵은 글씨, 인라인 코드, 코드 블록 같은 마크다운 요소는 Notion 블록/리치 텍스트로 변환되어 append 됩니다.
+- 링크, 굵은 글씨, 인라인 코드, 코드 블록 같은 마크다운 요소는 Notion 블록/리치 텍스트로 변환되어 child page 안에 저장됩니다.
 
 ## 페이지 경로 탐색
 
@@ -342,8 +344,8 @@ npm run check
 
 - `output/create-notion-source.md`: 대상 페이지 원문 Markdown
 - `output/create-notion-source.json`: 소스 메타데이터
-- `output/create-notion.md`: 페이지 하단에 붙일 정리본 Markdown
-- `output/create-notion-result.json`: 원문 페이지 append 결과
+- `output/create-notion.md`: `정리본` child page에 들어갈 정리본 Markdown
+- `output/create-notion-result.json`: `원본`/`정리본` child page 생성 결과
 
 ### LinkedIn
 
@@ -364,7 +366,7 @@ npm run check
 
 - `scripts/create-blog.js`: 블로그 전체 워크플로우 진입점
 - `scripts/create-blog-source.js`: 블로그 소스만 가져오기
-- `scripts/create-notion.js`: 원문 페이지 아래에 Notion용 정리본 추가
+- `scripts/create-notion.js`: 원문 페이지를 `원본`/`정리본` child page 구조로 재구성
 - `scripts/create-linkedin.js`: LinkedIn 소스 가져오기
 - `scripts/list-notion-tree.js`: Notion 페이지 경로 탐색
 - `scripts/publish-blog-draft.js`: 블로그 초안 발행
