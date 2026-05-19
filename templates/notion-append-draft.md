@@ -8,6 +8,7 @@ Use this template when turning an existing Notion page into a cleaner Notion-rea
 - Preserve the original meaning, claims, examples, cautions, and code samples.
 - Follow the source page's existing structure and ordering as closely as possible.
 - Use Markdown and Notion-friendly structure such as headings, paragraphs, bullets, numbered lists, quotes, dividers, and fenced code blocks.
+- Use Notion-style borders actively through Markdown structures that convert cleanly: `---` dividers between major sections and `>` quote blocks for summaries, key points, cautions, definitions, and important contrasts.
 
 ## Rules
 
@@ -16,6 +17,8 @@ Use this template when turning an existing Notion page into a cleaner Notion-rea
 - Do not invent facts, remove important details, or change the author's intent.
 - Keep the source's format, section order, and heading depth wherever practical.
 - Use Markdown bold sparingly for important terms or contrasts when it improves readability.
+- Add `---` dividers after dense major sections and before a new conceptual group when it improves scanability.
+- Use `>` quote blocks as bordered emphasis blocks for short summaries, cautions, definitions, or takeaways. Keep each quote block concise.
 - Preserve links and code blocks when they appear in the source.
 - Do not add a top-level `#` page title. The Notion child page title will be set separately.
 - Start the content with `## 정리본` for Korean pages, or `## Notes` for non-Korean pages.
@@ -25,5 +28,6 @@ Use this template when turning an existing Notion page into a cleaner Notion-rea
 
 - Make the writing cleaner and easier to scan, but not more opinionated.
 - Prefer short paragraphs over large text walls.
+- Prefer a bordered quote block over another paragraph when the content is a takeaway, warning, definition, or comparison summary.
 - When the source already uses lists or steps, keep that format.
 - When the source already uses sections, mirror that structure instead of replacing it with a completely different outline.

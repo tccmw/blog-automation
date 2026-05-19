@@ -15,7 +15,7 @@ const {
   getNotionConfig,
   validateToken,
 } = require("./lib/notion-api");
-const { extractTitleAndBody, markdownToNotionBlocks } = require("./lib/notion-render");
+const { extractTitleAndBody, markdownToNotionBlocks, normalizeCodeLanguage } = require("./lib/notion-render");
 const { pullWorkflowSource, writeWorkflowArtifacts } = require("./lib/notion-workflows");
 const { parseSourceInput } = require("./lib/parse-source-input");
 
@@ -119,6 +119,8 @@ async function writeCodexHandoff({ handoffPath, draftPath, result, paths, templa
     "- Preserve the source meaning, factual claims, and important structure.",
     "- Improve clarity, order, headings, and scanability for Notion.",
     "- Use Markdown structures that convert cleanly to Notion blocks.",
+    "- Use Notion-style borders actively: add `---` dividers between major conceptual sections and `>` quote blocks for summaries, key points, cautions, definitions, and important contrasts.",
+    "- Keep bordered quote blocks concise; they should clarify or emphasize, not duplicate full paragraphs.",
     "- Do not add a top-level `#` title; the child page title is set separately.",
     "- Write only the organized child page body to `output/create-notion.md`.",
     "",
@@ -237,6 +239,8 @@ function buildCodexPrompt({ result, paths, templatePath, draftPath }) {
     "Preserve the source meaning, factual claims, names, dates, links, and code snippets.",
     "Improve only structure, order, clarity, headings, formatting, and scanability.",
     "Use Markdown structures that convert cleanly to Notion blocks: headings, paragraphs, bullets, numbered lists, quotes, dividers, and fenced code blocks.",
+    "Use Notion-style borders actively: place `---` dividers between major conceptual sections, and use concise `>` quote blocks for summaries, key points, cautions, definitions, and important contrasts.",
+    "Prefer a bordered quote block over another paragraph when the content is a takeaway, warning, definition, or comparison summary.",
     "Return only a short final message that reports the draft path.",
   ];
 
@@ -385,6 +389,10 @@ function chunk(items, size) {
 
 async function archiveBlocks(notionConfig, blocks) {
   for (const block of blocks || []) {
+    if (block.type === "child_page" || block.type === "child_database") {
+      continue;
+    }
+
     await archiveBlock(notionConfig, block.id);
   }
 }
@@ -461,7 +469,7 @@ function sanitizeBlockForWrite(block) {
         type,
         code: {
           rich_text: sanitizeRichText(data.rich_text),
-          language: data.language || "plain text",
+          language: normalizeCodeLanguage(data.language),
           caption: sanitizeRichText(data.caption),
         },
       };

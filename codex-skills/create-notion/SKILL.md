@@ -26,7 +26,7 @@ This is a live Notion write workflow. It creates child pages under the selected 
 ## Environment
 
 - `NOTION_API_KEY` or `NOTION_TOKEN` is required.
-- `OPENAI_API_KEY` is required because the organized rewrite is generated through the OpenAI API.
+- Local `codex` CLI login is required because the organized rewrite is generated through the Codex CLI.
 
 ## Writing Rules
 
@@ -34,6 +34,8 @@ This is a live Notion write workflow. It creates child pages under the selected 
 - Preserve the source meaning, factual claims, and important structure.
 - Improve clarity, order, headings, and scanability for Notion.
 - Use Markdown structures that convert cleanly to Notion blocks.
+- Use Notion-style borders actively through Markdown structures that convert cleanly: `---` dividers between major sections and `>` quote blocks for summaries, key points, cautions, definitions, and important contrasts.
+- Keep bordered quote blocks concise; they should clarify or emphasize, not duplicate full paragraphs.
 - Do not add a top-level `#` title to `output/create-notion.md`; the child page title is set separately.
 
 ## Safety Rules
@@ -43,4 +45,4 @@ This is a live Notion write workflow. It creates child pages under the selected 
 - Do not manually create, archive, or rewrite Notion blocks outside `scripts/create-notion.js`.
 - Do not modify pulled source artifacts except by re-running the script.
 - Keep generated files inside `output/`.
-- If the script fails, report the missing environment variable, source selection issue, OpenAI error, or Notion API error directly.
+- If the script fails, report the missing environment variable, source selection issue, Codex CLI error, or Notion API error directly.
