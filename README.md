@@ -20,9 +20,8 @@ Notion에 정리된 원본 노트를 가져와 블로그 초안, LinkedIn용 원
 - Node.js 18 이상
 - npm
 - Notion integration token
-- 기본 블로그 초안 생성 모드(`BLOG_DRAFT_MODE=codex`)를 사용할 경우 로컬 `codex` CLI 설치 및 로그인
+- 기본 블로그 초안 생성 모드(`BLOG_DRAFT_MODE=codex`) 또는 `create-notion`을 사용할 경우 로컬 `codex` CLI 설치 및 로그인
 - OpenAI API로 블로그 초안을 생성할 경우 `OPENAI_API_KEY`
-- `create-notion`을 사용할 경우 `OPENAI_API_KEY`
 
 필수 환경 변수는 `.env`에 설정합니다. 시작점은 `.env.example`을 복사해서 만들면 됩니다.
 
@@ -105,6 +104,8 @@ Notion 페이지를 원본/정리본 child page 구조로 재구성:
 ```powershell
 npm run create-notion -- "https://www.notion.so/your-page"
 ```
+
+`create-notion`은 Notion 읽기/쓰기에는 `NOTION_API_KEY`를 사용하지만, 정리본 생성에는 OpenAI API 키를 사용하지 않고 로컬 `codex` CLI를 호출합니다.
 
 Notion 페이지 트리 조회:
 
