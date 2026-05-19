@@ -1,0 +1,3 @@
+display_name: Create Notion
+short_description: Organize a Notion page into original and cleaned child pages.
+default_prompt: create-notion
